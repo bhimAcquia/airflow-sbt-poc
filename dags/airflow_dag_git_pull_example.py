@@ -47,7 +47,7 @@ t1 = BashOperator(
 #note- while running bash command keep space at the end of sh script name
 t2 = BashOperator(
     task_id='test_git_pull_in_airflow',
-    bash_command='sh /Users/bhim.sella/airflow/scripts/bash_cmd.sh ',
+    bash_command='sh /Users/bhim.sella/airflow/scripts/bash_git_cmd.sh ',
     dag=dag)
 
 # not implemented - in progress
