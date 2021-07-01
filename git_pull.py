@@ -14,6 +14,7 @@ def git_call() :
     #repo.remotes.pull()
     git_dir = ""
     g = git.Git( git_dir )
+    #reset to overwrite the files
     print("git reset --hard")
     g.reset('--hard')
     print("git pull")
