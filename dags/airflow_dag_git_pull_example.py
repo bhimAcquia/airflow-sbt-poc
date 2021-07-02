@@ -50,7 +50,6 @@ t2 = BashOperator(
     bash_command='sh /Users/bhim.sella/airflow/scripts/bash_git_cmd.sh ',
     dag=dag)
 
-# not implemented - in progress
 t3 = BashOperator(
     task_id='run_dbt',
     bash_command='sh /Users/bhim.sella/airflow/scripts/bash_dbt_cmd.sh ',
