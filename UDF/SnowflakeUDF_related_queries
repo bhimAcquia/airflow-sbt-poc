@@ -1,0 +1,71 @@
+
+create or replace stage my_stage;
+//put file:///Users/bhim.sella/Downloads/aif-brickhouse.jar @my_stage/;
+
+list @my_stage;
+
+create function MAP_COMBINE_MAX(x varchar,y varchar)
+returns varchar
+language java
+imports = ('@my_stage/HiveToSnowFlake.jar')
+handler = 'com.acquia.HelloUDF.print';
+
+select MAP_COMBINE_MAX('hello','world');
+
+create function numeric_range(a int,b int, c int)
+returns integer
+language java
+imports = ('@my_stage/HiveToSnowFlake.jar')
+handler = 'com.acquia.NumericRangeUDF.numericRange';
+
+select numeric_range(1,10,2);
+
+CREATE OR REPLACE FUNCTION numeric_range_udf(RANGE_START FLOAT, RANGE_END FLOAT, INCR_BY FLOAT)
+    RETURNS TABLE (V FLOAT)
+    LANGUAGE JAVASCRIPT
+    AS $$
+        {
+            processRow: function numeric_range(row, rowWriter, context){
+              var startRange = row.RANGE_START;
+              //var incrementBy = row.incr;
+              while (startRange <= row.RANGE_END)  {
+                  rowWriter.writeRow( {V: startRange} );
+                  startRange = startRange + row.INCR_BY;
+              }
+            }
+        }
+        $$;
+
+SELECT * from table(numeric_range_udf(1::FLOAT,10::FLOAT,2::FLOAT));
+
+
+SELECT V AS Greeting FROM TABLE(HelloHuman('James', 'Kirk'));
+
+
+CREATE OR REPLACE FUNCTION HelloHuman(First_Name VARCHAR, Last_Name VARCHAR)
+    RETURNS TABLE (V VARCHAR)
+    LANGUAGE JAVASCRIPT
+    AS '{
+        processRow: function get_params(row, rowWriter, context){
+           rowWriter.writeRow({V: "Hello"});
+           rowWriter.writeRow({V: row.FIRST_NAME});  // Note the capitalization and the use of "row."!
+           rowWriter.writeRow({V: row.LAST_NAME});   // Note the capitalization and the use of "row."!
+           }
+        }';
+
+CREATE OR REPLACE FUNCTION range_to_values(INCR_BY FLOAT, RANGE_START FLOAT, RANGE_END FLOAT)
+    RETURNS TABLE (V VARCHAR)
+    LANGUAGE JAVASCRIPT
+    AS $$
+      {
+        processRow: function f(row, rowWriter, context)  {
+          var suffix = row.RANGE_START;
+          while (suffix <= row.RANGE_END)  {
+            rowWriter.writeRow( {V: suffix} );
+            suffix = suffix + row.INCR_BY;
+            }
+          }
+      }
+      $$;
+
+SELECT * FROM TABLE(range_to_values(2::FLOAT, 1::FLOAT, 10::FLOAT));
