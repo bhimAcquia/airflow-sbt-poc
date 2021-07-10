@@ -1,4 +1,12 @@
+SELECT OBJECT_AGG(O_ORDERDATE, (O_ORDERDATE)) FROM TPCH_SF1.ORDERS;
 
+SELECT count(C_CUSTKEY) FROM TPCH_SF1.CUSTOMER ;
+SELECT ARRAY_SIZE(mp) FROM (
+SELECT OBJECT_AGG(C_CUSTKEY, C_NATIONKEY) AS mp FROM TPCH_SF1.CUSTOMER);
+
+select * from my_first_dbt_model;
+
+list @java_libraries;
 create or replace stage my_stage;
 //put file:///Users/bhim.sella/Downloads/aif-brickhouse.jar @my_stage/;
 
@@ -69,3 +77,62 @@ CREATE OR REPLACE FUNCTION range_to_values(INCR_BY FLOAT, RANGE_START FLOAT, RAN
       $$;
 
 SELECT * FROM TABLE(range_to_values(2::FLOAT, 1::FLOAT, 10::FLOAT));
+
+-- set up for the sample
+CREATE TABLE parts (p FLOAT, s STRING);
+INSERT INTO parts VALUES (1, 'kelly'), (5, 'kelly'), (1, 'brian');
+INSERT INTO parts VALUES (2, 'clara'), (2, 'kelly'), (2, 'reagan');
+INSERT INTO parts VALUES (10, 'kelly'), (15, 'clara'), (12, 'brian');
+INSERT INTO parts VALUES (11, 'kelly'), (51, 'regan'), (21, 'brian');
+
+CREATE OR REPLACE FUNCTION "COLLECT_MIN"(X STRING, VAL FLOAT, N FLOAT)
+    RETURNS TABLE (ORG VARCHAR,ARR ARRAY)
+    LANGUAGE JAVASCRIPT
+    AS '{
+    processRow: function (row, rowWriter, context) {
+        if(this.cMap.has(row.X)) {
+            let values = this.cMap.get(row.X);
+            let size = values.length;
+
+            values.push(row.VAL);
+            values.sort();
+            if(size >= row.N) {
+             values.pop();
+            }
+        } else {
+            let values = [];
+            values.push(row.VAL);
+            this.cMap.set(row.X,values);
+        }
+      //rowWriter.writeRow({NUM: row.INS.length});
+    },
+    finalize: function (rowWriter, context) {
+
+      for (let [key, value] of this.cMap) {
+          rowWriter.writeRow({ORG: key, ARR: value});
+      }
+    },
+    initialize: function(argumentInfo, context) {
+     this.cMap = new Map();
+    }
+    }';
+select * from parts;
+select s,arr from parts, table(COLLECT_MIN(s,p::FLOAT,3::FLOAT) over (PARTITION BY s));
+select * from parts, table(char_sum(s));
+
+CREATE OR REPLACE FUNCTION "CHAR_SUM"(INS STRING)
+    RETURNS TABLE (NUM FLOAT)
+    LANGUAGE JAVASCRIPT
+    AS '{
+    processRow: function (row, rowWriter, context) {
+      this.ccount = this.ccount + 1;
+      this.csum = this.csum + row.INS.length;
+      rowWriter.writeRow({NUM: row.INS.length});
+    },
+    finalize: function (rowWriter, context) {
+     rowWriter.writeRow({NUM: this.csum});
+    },
+    initialize: function(argumentInfo, context) {
+     this.ccount = 0;
+     this.csum = 0;
+    }}';
